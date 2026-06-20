@@ -1,0 +1,33 @@
+# Terraform
+**/.terraform/
+**/.terraform.lock.hcl
+**/terraform.tfstate
+**/terraform.tfstate.*
+**/tfplan
+**/tfplan.txt
+crash.log
+crash.*.log
+
+# Secrets
+*.key
+*.pem
+*.p12
+*.jks
+*.jwk
+*.license
+*.lic
+*.secret
+*.password
+terraform.tfvars
+
+# PingFederate backups/artifacts
+*.zip
+*.tar.gz
+backups/
+logs/
+
+# OS/editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
