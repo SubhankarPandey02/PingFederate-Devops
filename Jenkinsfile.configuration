@@ -1,0 +1,97 @@
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+  }
+
+  parameters {
+    booleanParam(
+      name: 'RUN_TERRAFORM_APPLY',
+      defaultValue: false,
+      description: 'Apply Terraform changes after reviewing plan'
+    )
+  }
+
+  environment {
+    TF_IN_AUTOMATION = 'true'
+    TF_INPUT = 'false'
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Check PingFederate Is Running') {
+      steps {
+        sh '''
+          set -e
+          chmod +x scripts/wait_for_pingfederate.sh
+          ./scripts/wait_for_pingfederate.sh
+        '''
+      }
+    }
+
+    stage('Terraform Init') {
+      steps {
+        dir('terraform') {
+          sh 'terraform init'
+        }
+      }
+    }
+
+    stage('Terraform Validate') {
+      steps {
+        dir('terraform') {
+          sh '''
+            terraform fmt -check
+            terraform validate
+          '''
+        }
+      }
+    }
+
+    stage('Terraform Plan') {
+      steps {
+        dir('terraform') {
+          sh '''
+            terraform plan -out=tfplan
+            terraform show -no-color tfplan > tfplan.txt
+          '''
+        }
+      }
+    }
+
+    stage('Terraform Apply') {
+      when {
+        expression { return params.RUN_TERRAFORM_APPLY }
+      }
+      steps {
+        dir('terraform') {
+          sh 'terraform apply -input=false tfplan'
+        }
+      }
+    }
+
+    stage('Smoke Test') {
+      when {
+        expression { return params.RUN_TERRAFORM_APPLY }
+      }
+      steps {
+        sh '''
+          echo "Run application or PingFederate smoke tests here"
+        '''
+      }
+    }
+  }
+
+  post {
+    always {
+      archiveArtifacts artifacts: 'terraform/tfplan.txt', allowEmptyArchive: true
+    }
+  }
+}

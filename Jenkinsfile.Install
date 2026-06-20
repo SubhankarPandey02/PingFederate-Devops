@@ -1,0 +1,53 @@
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+  }
+
+  parameters {
+    booleanParam(
+      name: 'CONFIRM_INSTALL',
+      defaultValue: false,
+      description: 'Confirm that you want to install or adopt PingFederate'
+    )
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Safety Check') {
+      steps {
+        script {
+          if (!params.CONFIRM_INSTALL) {
+            error('Installation was not confirmed. Set CONFIRM_INSTALL=true to continue.')
+          }
+        }
+      }
+    }
+
+    stage('Run Ansible Install') {
+      steps {
+        sh '''
+          set -e
+          ansible-playbook -i ansible/inventory.ini ansible/install_pingfederate.yml
+        '''
+      }
+    }
+
+    stage('Wait for PingFederate') {
+      steps {
+        sh '''
+          set -e
+          chmod +x scripts/wait_for_pingfederate.sh
+          ./scripts/wait_for_pingfederate.sh
+        '''
+      }
+    }
+  }
+}
