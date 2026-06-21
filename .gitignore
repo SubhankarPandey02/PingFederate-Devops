@@ -25,7 +25,7 @@ terraform.tfvars
 *.tar.gz
 backups/
 logs/
-
+*_password
 # OS/editor
 .DS_Store
 *.swp
